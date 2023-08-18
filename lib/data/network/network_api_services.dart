@@ -3,21 +3,25 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:getx_mvvm/data/network/base_api_services.dart';
+import 'package:getx_mvvm/res/app_url/app_url.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../view_models/controller/user_preference/user_prefrence_view_model.dart';
 import '../app_exceptions.dart';
 
 class NetworkApiServices extends BaseApiServices {
+  UserPreference userPreference = UserPreference();
   @override
-  Future<dynamic> getApi(String url) async {
+  Future<dynamic> getApi(String url,{String? contentType}) async {
     if (kDebugMode) {
       print(url);
     }
 
     dynamic responseJson;
+    var headers = await _getHeaders(contentType: contentType);
     try {
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      final response = await http.get(Uri.parse(url), headers: headers).timeout(const Duration(seconds: 10));
       responseJson = returnResponse(response);
     } on SocketException {
       throw InternetException('');
@@ -70,12 +74,12 @@ class NetworkApiServices extends BaseApiServices {
     }
   }
 
-  final _apiKey = "8610ed17b516d04629f55a715dca9c64104d00d8";
+
   Future<Map<String, String>> _getHeaders({String? contentType}) async {
-    var accessToken = await getToken();
+    var accessToken = await userPreference.getUserToken();
 
     Map<String, String> headers = {
-      'x-api-key': _apiKey,
+      'x-api-key': AppUrl.apiKey,
       'Content-Type': contentType ?? 'text/plain',
     };
     if (accessToken != null) {
@@ -84,15 +88,4 @@ class NetworkApiServices extends BaseApiServices {
     return headers;
   }
 
-  String? accessToken;
-  Future<String?> getToken() async {
-    //getIpInfo();
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var accessToken = prefs.getString('accessToken');
-    debugPrint("AccessTokenFromGet: $accessToken");
-    this.accessToken = accessToken;
-    //notifyListeners();
-    return accessToken;
-  }
 }
